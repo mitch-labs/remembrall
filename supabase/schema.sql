@@ -15,7 +15,7 @@ create table public.items (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   cat text not null check (char_length(cat) between 1 and 64),
   text text not null check (char_length(text) between 1 and 200),
-  note text check (note is null or char_length(note) <= 500),
+  note text check (note is null or char_length(note) <= 2000),
   created_at timestamptz not null default now()
 );
 

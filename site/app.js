@@ -23,7 +23,7 @@ let user = null;
 let items = [];      // {id, cat, text, note, created_at}
 let custom = [];     // {id, label, recall, created_at}
 let settings = null; // {reminders_on, remind_hour, remind_tz}
-let selCat = "word", filt = "all", confirmId = null;
+let selCat = "word", filt = "all", confirmId = null, openId = null;
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila";
 
 // ---------- categories ----------
@@ -81,7 +81,7 @@ function renderRecall() {
     const li = el("li"), box = el("div");
     box.appendChild(el("span", { class: "k" }, p.recall));
     box.appendChild(el("span", { class: "v" }, p.text));
-    if (p.note) box.appendChild(el("span", { class: "n" }, p.note));
+    if (p.note) { const n = el("span", { class: "n" }); linkify(p.note, n); box.appendChild(n); }
     li.appendChild(box); list.appendChild(li);
   }
   const red = !isSeen() && picks.length > 0;
@@ -142,21 +142,54 @@ function renderList() {
     return;
   }
   for (const i of shown) {
-    const li = el("li");
-    li.appendChild(el("span", { class: "tag" }, catOf(i.cat).label));
-    const t = el("div", { class: "txt" });
-    t.appendChild(document.createTextNode(i.text));
-    if (i.note) t.appendChild(el("small", null, i.note));
-    t.appendChild(el("time", { datetime: i.created_at }, "Kept " + new Date(i.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })));
-    li.appendChild(t);
-    const del = el("button", { type: "button", class: "del" + (confirmId === i.id ? " confirm" : "") }, confirmId === i.id ? "Delete?" : "Remove");
-    del.onclick = () => {
-      if (confirmId === i.id) return removeItem(i.id);
-      confirmId = i.id; renderList();
-      setTimeout(() => { if (confirmId === i.id) { confirmId = null; renderList(); } }, 4000);
-    };
-    li.appendChild(del); ul.appendChild(li);
+    const open = openId === i.id;
+    const li = el("li", { class: "entry" + (open ? " open" : "") });
+    const head = el("button", { type: "button", class: "entry-head", "aria-expanded": String(open), "aria-controls": "d-" + i.id });
+    if (filt === "all") head.appendChild(el("span", { class: "tag" }, catOf(i.cat).label));
+    head.appendChild(el("span", { class: "entry-title" }, i.text));
+    head.appendChild(el("span", { class: "chev", "aria-hidden": "true" }, open ? "–" : "+"));
+    head.onclick = () => { openId = open ? null : i.id; confirmId = null; renderList(); };
+    li.appendChild(head);
+
+    if (open) {
+      const d = el("div", { class: "entry-body", id: "d-" + i.id });
+      const memo = el("p", { class: "memo" });
+      if (i.note) linkify(i.note, memo);
+      else { memo.classList.add("blank"); memo.textContent = "No memory line for this one."; }
+      d.appendChild(memo);
+      const foot = el("div", { class: "entry-foot" });
+      foot.appendChild(el("time", { datetime: i.created_at }, "Kept " + new Date(i.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })));
+      const del = el("button", { type: "button", class: "del" + (confirmId === i.id ? " confirm" : "") }, confirmId === i.id ? "Tap again to delete" : "Remove");
+      del.onclick = () => {
+        if (confirmId === i.id) return removeItem(i.id);
+        confirmId = i.id; renderList();
+        setTimeout(() => { if (confirmId === i.id) { confirmId = null; renderList(); } }, 4000);
+      };
+      foot.appendChild(del); d.appendChild(foot); li.appendChild(d);
+    }
+    ul.appendChild(li);
   }
+}
+
+// Turns web addresses in a note into tappable links that open in a new tab.
+const URL_RE = /\b(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+\.[^\s<>"']+)/gi;
+function linkify(text, into) {
+  let last = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    let raw = m[0];
+    const trail = raw.match(/[.,;:!?)\]]+$/);   // leave sentence punctuation outside the link
+    if (trail) raw = raw.slice(0, -trail[0].length);
+    if (m.index > last) into.appendChild(document.createTextNode(text.slice(last, m.index)));
+    let href = raw.startsWith("www.") ? "https://" + raw : raw;
+    try { href = new URL(href).href; } catch { into.appendChild(document.createTextNode(raw)); last = m.index + raw.length; continue; }
+    let label = raw.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+    if (label.length > 48) label = label.slice(0, 45) + "…";
+    const a = el("a", { href, target: "_blank", rel: "noopener noreferrer" }, label);
+    a.title = href;
+    into.appendChild(a);
+    last = m.index + raw.length;
+  }
+  if (last < text.length) into.appendChild(document.createTextNode(text.slice(last)));
 }
 function renderAll() { renderChips(); renderRecall(); renderList(); }
 
