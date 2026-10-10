@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Remembrall</title>
+<meta name="description" content="Log the words, recipes, books and news you find interesting. Remembrall hands a few back to you every day.">
+<meta name="theme-color" content="#0f0d15">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Remembrall">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="brand">Remem<span>brall</span></h1>
+    <div class="account" id="account" hidden>
+      <span id="who"></span>
+      <button type="button" class="linkish" id="signOut">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Signed out -->
+  <section id="authView" class="auth" hidden>
+    <div class="orb-stage small" aria-hidden="true">
+      <div class="orb"><canvas class="smoke" width="500" height="500"></canvas></div>
+      <svg class="stand" viewBox="0 0 200 70"><use href="#standArt"/></svg>
+    </div>
+    <div class="panel auth-panel">
+      <h2>For the things you meant to keep</h2>
+      <p class="sub">Log the words, recipes, books and news you find interesting. Every day, Remembrall hands a few back to you.</p>
+      <form id="emailForm" autocomplete="on">
+        <div class="field">
+          <label for="email">Your email</label>
+          <input id="email" type="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
+        </div>
+        <button class="btn" type="submit" id="emailBtn">Email me a sign-in code</button>
+      </form>
+      <form id="codeForm" hidden autocomplete="off">
+        <p class="sub" id="codeSent"></p>
+        <div class="field">
+          <label for="code">Sign-in code</label>
+          <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required placeholder="6-digit code">
+        </div>
+        <div class="row">
+          <button class="btn" type="submit">Sign in</button>
+          <button class="btn ghost" type="button" id="codeBack">Use a different email</button>
+        </div>
+      </form>
+      <p class="toast" id="authMsg" role="status"></p>
+    </div>
+  </section>
+
+  <!-- Signed in -->
+  <div class="main" id="appView" hidden>
+    <section class="orb-col" aria-label="Your Remembrall">
+      <div class="orb-stage">
+        <button class="orb" id="orb" aria-label="Look into the Remembrall to see today's recall">
+          <canvas class="smoke" id="smoke" width="600" height="600"></canvas>
+        </button>
+        <svg class="stand" viewBox="0 0 200 70" aria-hidden="true"><use href="#standArt"/></svg>
+      </div>
+      <p class="orb-state" id="orbState"></p>
+
+      <article class="recall veiled" id="recall">
+        <h2>Today's recall</h2>
+        <p class="date" id="recallDate"></p>
+        <ol id="recallList"></ol>
+        <p class="hint" id="recallHint">The smoke has turned red. You've forgotten something. Tap the orb.</p>
+      </article>
+
+      <section class="panel reminders" aria-label="Daily reminder">
+        <h2>Daily reminder</h2>
+        <p class="sub" id="pushIntro">Get today's recall as a notification on this device.</p>
+        <div class="row between">
+          <label class="switch" for="remindOn">
+            <input type="checkbox" id="remindOn">
+            <span class="track" aria-hidden="true"></span>
+            <span>Remind me every day</span>
+          </label>
+          <div class="field inline">
+            <label for="remindHour">at</label>
+            <select id="remindHour"></select>
+          </div>
+        </div>
+        <p class="sub small" id="tzLine"></p>
+        <p class="note" id="pushNote" hidden></p>
+        <div class="row">
+          <button type="button" class="btn ghost" id="testPush" hidden>Send a test now</button>
+          <span class="toast" id="pushMsg" role="status"></span>
+        </div>
+      </section>
+
+      <section class="panel install" id="installPanel" hidden>
+        <h2>Put it on your home screen</h2>
+        <p class="sub" id="installText"></p>
+        <button type="button" class="btn" id="installBtn" hidden>Install Remembrall</button>
+      </section>
+    </section>
+
+    <section class="ledger">
+      <form class="panel" id="logForm" autocomplete="off">
+        <h2>Drop it in</h2>
+        <p class="sub">Anything you found interesting and will probably forget by Thursday.</p>
+        <div class="chips" id="catChips" role="group" aria-label="Kind of thing"></div>
+        <div class="field">
+          <label for="text">What is it?</label>
+          <input id="text" required maxlength="200">
+        </div>
+        <div class="field">
+          <label for="note">A line to jog your memory (optional)</label>
+          <textarea id="note" maxlength="500"></textarea>
+        </div>
+        <div class="row">
+          <button class="btn" type="submit" id="keepBtn">Keep it</button>
+          <span class="toast" id="toast" role="status"></span>
+        </div>
+      </form>
+
+      <section class="panel" aria-label="Everything you've kept">
+        <div class="list-head">
+          <h2>The ledger</h2>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="shelves" id="shelves" role="group" aria-label="Categories"></div>
+        <form class="newcat" id="newCat" hidden autocomplete="off">
+          <div class="field">
+            <label for="ncName">Category name</label>
+            <input id="ncName" maxlength="30" required placeholder="e.g. Movie, Place, Quote">
+          </div>
+          <div class="field">
+            <label for="ncRecall">How the orb should say it (optional)</label>
+            <input id="ncRecall" maxlength="50" placeholder="e.g. Movie you wanted to watch">
+          </div>
+          <div class="row">
+            <button class="btn" type="submit">Add category</button>
+            <button class="btn ghost" type="button" id="ncCancel">Cancel</button>
+          </div>
+        </form>
+        <div class="view-head">
+          <h3 class="view-title" id="viewTitle">Everything</h3>
+          <button type="button" class="linkish" id="delCat" hidden>Remove this category</button>
+        </div>
+        <div class="field">
+          <label for="q">Search</label>
+          <input id="q" type="search" placeholder="Find something you kept">
+        </div>
+        <ul class="items" id="items"></ul>
+      </section>
+    </section>
+  </div>
+
+  <p class="loading" id="loading">Polishing the glass…</p>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="br" x1="0" x2="1">
+      <stop offset="0" stop-color="#6e5420"/><stop offset=".45" stop-color="#e4c06a"/><stop offset=".7" stop-color="#b48a35"/><stop offset="1" stop-color="#5a4318"/>
+    </linearGradient>
+    <g id="standArt">
+      <path d="M40 4 Q100 26 160 4 L150 18 Q100 36 50 18 Z" fill="url(#br)"/>
+      <rect x="88" y="22" width="24" height="22" fill="url(#br)"/>
+      <ellipse cx="100" cy="56" rx="72" ry="11" fill="url(#br)"/>
+      <ellipse cx="100" cy="52" rx="58" ry="6" fill="#2a2010" opacity=".45"/>
+    </g>
+  </defs>
+</svg>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
