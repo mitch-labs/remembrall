@@ -36,23 +36,31 @@
     <div class="panel auth-panel">
       <h2>For the things you meant to keep</h2>
       <p class="sub">Log the words, recipes, books and news you find interesting. Every day, Remembrall hands a few back to you.</p>
-      <form id="emailForm" autocomplete="on">
+      <div class="chips" role="group" aria-label="Sign in or create an account" id="authTabs">
+        <button type="button" class="chip" aria-pressed="true" data-mode="signin">Sign in</button>
+        <button type="button" class="chip" aria-pressed="false" data-mode="signup">Create account</button>
+      </div>
+      <form id="authForm" autocomplete="on">
         <div class="field">
-          <label for="email">Your email</label>
+          <label for="email">Email</label>
           <input id="email" type="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
         </div>
-        <button class="btn" type="submit" id="emailBtn">Email me a sign-in code</button>
-      </form>
-      <form id="codeForm" hidden autocomplete="off">
-        <p class="sub" id="codeSent"></p>
         <div class="field">
-          <label for="code">Sign-in code</label>
-          <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required placeholder="6-digit code">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="6" autocomplete="current-password">
         </div>
         <div class="row">
-          <button class="btn" type="submit">Sign in</button>
-          <button class="btn ghost" type="button" id="codeBack">Use a different email</button>
+          <button class="btn" type="submit" id="authBtn">Sign in</button>
+          <button type="button" class="linkish" id="forgotBtn">Forgot password?</button>
         </div>
+      </form>
+      <form id="resetForm" hidden autocomplete="off">
+        <p class="sub">Choose a new password for your account.</p>
+        <div class="field">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" type="password" required minlength="6" autocomplete="new-password">
+        </div>
+        <button class="btn" type="submit">Save new password</button>
       </form>
       <p class="toast" id="authMsg" role="status"></p>
     </div>

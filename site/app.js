@@ -340,27 +340,55 @@ if (isIOS && !isStandalone) {
 }
 
 // ---------- auth ----------
-let pendingEmail = "";
-$("emailForm").addEventListener("submit", async (e) => {
+const SITE = location.origin + location.pathname;
+let authMode = "signin", recovering = false;
+function setAuthMode(m) {
+  authMode = m;
+  document.querySelectorAll("#authTabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+  $("authBtn").textContent = m === "signin" ? "Sign in" : "Create account";
+  $("password").autocomplete = m === "signin" ? "current-password" : "new-password";
+  $("forgotBtn").hidden = m !== "signin";
+  $("authMsg").textContent = "";
+}
+document.querySelectorAll("#authTabs .chip").forEach((b) => (b.onclick = () => setAuthMode(b.dataset.mode)));
+
+$("authForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  pendingEmail = $("email").value.trim();
-  $("emailBtn").disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email: pendingEmail, options: { emailRedirectTo: location.origin + location.pathname } });
-  $("emailBtn").disabled = false;
-  if (error) {
-    const wait = /rate|seconds|too many/i.test(error.message);
-    return flash("authMsg", wait ? "Too many sign-in emails just now. Wait a minute, then try again." : "Could not send the email. Check the address and try again.");
+  const email = $("email").value.trim(), password = $("password").value;
+  $("authBtn").disabled = true;
+  if (authMode === "signin") {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) flash("authMsg", /confirm/i.test(error.message)
+      ? "Confirm your email first. Open the link we sent you, then sign in here."
+      : "That email and password don't match. Try again, or reset your password.");
+  } else {
+    const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: SITE } });
+    if (error) {
+      flash("authMsg", /rate|too many|seconds/i.test(error.message)
+        ? "Too many sign-up emails just now. Wait a few minutes, then try again."
+        : /registered|exists/i.test(error.message) ? "That email already has an account. Sign in instead."
+        : /password/i.test(error.message) ? "Use a password of at least 6 characters." : "Could not create the account. Try again.");
+    } else if (!data.session) {
+      setAuthMode("signin");
+      $("authMsg").textContent = `Almost there. We emailed ${email} a link to confirm your account. Open it, then sign in here.`;
+    }
   }
-  $("emailForm").hidden = true; $("codeForm").hidden = false;
-  $("codeSent").textContent = `We emailed ${pendingEmail}. Enter the code from the email, or tap the link in it on this device.`;
-  $("code").focus();
+  $("authBtn").disabled = false;
 });
-$("codeForm").addEventListener("submit", async (e) => {
+$("forgotBtn").onclick = async () => {
+  const email = $("email").value.trim();
+  if (!email) { $("email").focus(); return flash("authMsg", "Enter your email above, then tap Forgot password again."); }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE });
+  $("authMsg").textContent = error ? "Could not send the reset email. Wait a few minutes and try again."
+    : `If ${email} has an account, a reset link is on its way. Open it on this device.`;
+};
+$("resetForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token: $("code").value.trim(), type: "email" });
-  if (error) flash("authMsg", "That code did not work. Check it, or request a new one.");
+  const { error } = await sb.auth.updateUser({ password: $("newPassword").value });
+  if (error) return flash("authMsg", "Could not save that password. Use at least 6 characters.");
+  recovering = false; $("resetForm").hidden = true; $("authForm").hidden = false; $("authTabs").hidden = false;
+  show("app"); load();
 });
-$("codeBack").onclick = () => { $("codeForm").hidden = true; $("emailForm").hidden = false; };
 $("signOut").onclick = async () => { await sb.auth.signOut(); };
 
 function show(view) {
@@ -370,8 +398,13 @@ function show(view) {
   $("account").hidden = view !== "app";
 }
 let lastUserId = null;
-sb.auth.onAuthStateChange((_evt, session) => {
+sb.auth.onAuthStateChange((evt, session) => {
   user = session?.user || null;
+  if (evt === "PASSWORD_RECOVERY") recovering = true;
+  if (recovering && user) {
+    show("auth"); $("authForm").hidden = true; $("authTabs").hidden = true; $("resetForm").hidden = false;
+    return;
+  }
   if (!user) { lastUserId = null; items = []; custom = []; settings = null; smoke.target = 1; show("auth"); return; }
   $("who").textContent = user.email || "";
   show("app");

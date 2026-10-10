@@ -1,5 +1,5 @@
 // Remembrall service worker: shows the daily push and keeps the app shell available offline.
-const CACHE = "remembrall-v1";
+const CACHE = "remembrall-v2";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png"];
 

@@ -21,28 +21,19 @@ Open https://supabase.com/dashboard and choose the **Remembrall** project.
 1. Go to **Authentication → URL Configuration**.
    - Set **Site URL** to your Netlify address.
    - Under **Redirect URLs**, add the same address with `/**` on the end, for example `https://remembrall-mitch.netlify.app/**`.
-2. Go to **Authentication → Email Templates → Magic Link** and replace the message body with this, so the email also contains a code. iPhone home-screen apps need the code, because a link opens in Safari instead of the app.
-
-   ```html
-   <h2>Your Remembrall sign-in</h2>
-   <p>Enter this code in the app:</p>
-   <p style="font-size:28px;letter-spacing:4px"><strong>{{ .Token }}</strong></p>
-   <p>Or tap this link on the same device: <a href="{{ .ConfirmationURL }}">Sign in to Remembrall</a></p>
-   ```
-
-   Set the subject to `Your Remembrall code`.
+2. Leave the email templates as they are. Remembrall signs in with email and password, so the default emails work: one to confirm a new account, and one to reset a forgotten password.
 
 ## 3. Try it
 
-- **Desktop (Chrome or Edge):** open your address, sign in with your email, then click **Install Remembrall** (or the install icon in the address bar).
+- **Desktop (Chrome or Edge):** open your address, tap **Create account**, confirm the email Supabase sends you, sign in, then click **Install Remembrall** (or the install icon in the address bar).
 - **Android:** open it in Chrome, sign in, and tap **Install** or **Add to Home screen**.
-- **iPhone or iPad:** open it in **Safari**, tap **Share → Add to Home Screen**, then open Remembrall *from the home screen* and sign in there with the emailed code. Reminders only work on iPhone from the home-screen app (iOS 16.4 or later).
+- **iPhone or iPad:** open it in **Safari**, tap **Share → Add to Home Screen**, then open Remembrall *from the home screen* and sign in there. Reminders only work on iPhone from the home-screen app (iOS 16.4 or later).
 
 Then, in the app, switch on **Remind me every day**, pick a time, allow notifications, and tap **Send a test now**.
 
 ## 4. Before you invite other people
 
-- **Email limits:** Supabase's built-in email sender is meant for testing and only sends a few sign-in emails per hour. Before sharing widely, connect your own email sender in **Authentication → Emails → SMTP Settings**. Resend, Brevo and Postmark all have free tiers.
+- **Email limits:** Supabase's built-in email sender is meant for testing and only sends a few emails per hour (account confirmations and password resets). Before sharing widely, connect your own email sender in **Authentication → Emails → SMTP Settings**. Resend, Brevo and Postmark all have free tiers.
 - **Your address for push services:** push services ask for a contact URL. It's currently set to `https://remembrall.netlify.app`. Send me your real Netlify address and I'll update it, or run this in **SQL Editor**:
 
   ```sql
