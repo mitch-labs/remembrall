@@ -368,6 +368,10 @@ $("authForm").addEventListener("submit", async (e) => {
         ? "Too many sign-up emails just now. Wait a few minutes, then try again."
         : /registered|exists/i.test(error.message) ? "That email already has an account. Sign in instead."
         : /password/i.test(error.message) ? "Use a password of at least 6 characters." : "Could not create the account. Try again.");
+    } else if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      // Supabase answers "success" without sending anything when the email is already registered.
+      setAuthMode("signin");
+      $("authMsg").textContent = `${email} already has an account. Sign in, or tap Forgot password to set a new password.`;
     } else if (!data.session) {
       setAuthMode("signin");
       $("authMsg").textContent = `Almost there. We emailed ${email} a link to confirm your account. Open it, then sign in here.`;
