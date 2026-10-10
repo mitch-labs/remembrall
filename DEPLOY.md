@@ -4,11 +4,13 @@ The backend is already running on Supabase (project **Remembrall**, Singapore re
 
 ## 1. Publish the site on Netlify (free)
 
-1. Unzip `remembrall-app.zip`.
-2. Go to **https://app.netlify.com/drop** and sign up or log in (GitHub or email is fine).
-3. Drag the **`site`** folder (the folder itself, not the zip) onto the page.
+1. Go to **https://app.netlify.com** and log in with GitHub.
+2. Click **Add new site → Import an existing project → GitHub**, and allow Netlify access to `mitch-labs/remembrall`.
+3. Pick the **remembrall** repo. Netlify reads `netlify.toml`, so leave the build settings as they are (no build command, publish directory `site`) and click **Deploy**.
 4. Netlify gives you an address like `https://sparkly-otter-123abc.netlify.app`.
 5. Optional: in **Site configuration → Change site name**, rename it to something like `remembrall-mitch` so the address is `https://remembrall-mitch.netlify.app`.
+
+Every push to the `main` branch redeploys the site automatically.
 
 Copy that address. You need it in the next step.
 
@@ -51,10 +53,10 @@ Then, in the app, switch on **Remind me every day**, pick a time, allow notifica
 
 ## Updating the app later
 
-Change files in `site`, then on Netlify open your site → **Deploys** → drag the `site` folder in again. Installed apps pick up the new version the next time they're opened.
+Change files in `site` and push to `main`. Netlify redeploys on its own, and installed apps pick up the new version the next time they're opened.
 
 ## What's in the box
 
-- `site/`: the app (HTML, CSS, JavaScript, icons, manifest and service worker). This is what you upload.
+- `site/`: the app (HTML, CSS, JavaScript, icons, manifest and service worker). Netlify publishes this folder.
 - `supabase/functions/daily-recall/`: the reminder function (already deployed).
 - `supabase/schema.sql`: the database tables and privacy rules (already applied). Each person can only ever see their own entries.
