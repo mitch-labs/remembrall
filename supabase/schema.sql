@@ -16,7 +16,8 @@ create table public.items (
   cat text not null check (char_length(cat) between 1 and 64),
   text text not null check (char_length(text) between 1 and 200),
   note text check (note is null or char_length(note) <= 2000),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  done_at timestamptz  -- set when ticked as done; done items leave the daily recall
 );
 
 create table public.settings (

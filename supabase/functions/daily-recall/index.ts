@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     if (!isTest && (lp.hour !== s.remind_hour || s.last_sent === lp.date)) continue;
 
     const [{ data: items }, { data: cats }, { data: subs }] = await Promise.all([
-      admin.from("items").select("id, cat, text, note, created_at").eq("user_id", s.user_id),
+      admin.from("items").select("id, cat, text, note, created_at").eq("user_id", s.user_id).is("done_at", null),
       admin.from("categories").select("id, label, recall, created_at").eq("user_id", s.user_id),
       admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", s.user_id),
     ]);
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const picks = pick((items || []) as Item[], (cats || []) as Cat[], lp.day);
     const lines = picks.length
       ? picks.map((p, i) => `${i + 1}. ${p.recall}: ${p.text}`).join("\n")
-      : "Your orb is empty. Drop something in today.";
+      : "Nothing left in your orb. Drop something new in today.";
     const payload = JSON.stringify({
       title: picks.length ? "You've forgotten something" : "Remembrall",
       body: lines,

@@ -43,7 +43,7 @@ function localDay(tz) {
   return { date: `${p.year}-${p.month}-${p.day}`, day: Math.floor(Date.UTC(+p.year, +p.month - 1, +p.day) / 86400000) };
 }
 function pick(list, day) {
-  const sorted = [...list].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+  const sorted = list.filter((i) => !i.done_at).sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
   const kinds = allCats().filter((k) => sorted.some((i) => i.cat === k.id));
   if (!kinds.length) return [];
   const out = [], start = day % kinds.length;
@@ -76,13 +76,20 @@ function renderRecall() {
   $("recallDate").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const list = $("recallList"); list.textContent = "";
   const picks = pick(items, today().day);
-  if (!picks.length) list.appendChild(el("p", { class: "empty" }, "Nothing in the orb yet. Drop something in and it will come back to you."));
+  if (!picks.length) list.appendChild(el("p", { class: "empty" }, items.length
+    ? "Everything in the orb is done. Drop in something new and it will come back to you."
+    : "Nothing in the orb yet. Drop something in and it will come back to you."));
   for (const p of picks) {
     const li = el("li"), box = el("div");
     box.appendChild(el("span", { class: "k" }, p.recall));
     box.appendChild(el("span", { class: "v" }, p.text));
     if (p.note) { const n = el("span", { class: "n" }); linkify(p.note, n); box.appendChild(n); }
-    li.appendChild(box); list.appendChild(li);
+    li.appendChild(box);
+    const tick = el("button", { type: "button", class: "tick", "aria-label": `Mark ${p.text} as done` });
+    tick.appendChild(el("span", { class: "box", "aria-hidden": "true" }));
+    tick.appendChild(el("span", null, "Done"));
+    tick.onclick = () => toggleDone(p.id, true);
+    li.appendChild(tick); list.appendChild(li);
   }
   const red = !isSeen() && picks.length > 0;
   $("recall").classList.toggle("veiled", red);
@@ -115,7 +122,8 @@ function renderShelves() {
     const n = cat.id === "all" ? items.length : items.filter((i) => i.cat === cat.id).length;
     const b = el("button", { type: "button", class: "shelf", "aria-pressed": String(cat.id === filt) });
     b.appendChild(el("span", { class: "sl" }, cat.label));
-    b.appendChild(el("span", { class: "sc" }, n === 0 ? "Nothing yet" : n + (n === 1 ? " thing" : " things")));
+    const nd = (cat.id === "all" ? items : items.filter((i) => i.cat === cat.id)).filter((i) => i.done_at).length;
+    b.appendChild(el("span", { class: "sc" }, n === 0 ? "Nothing yet" : n + (n === 1 ? " thing" : " things") + (nd ? ` · ${nd} done` : "")));
     b.onclick = () => { filt = cat.id; if (cat.id !== "all") selCat = cat.id; renderChips(); renderList(); };
     s.appendChild(b);
   }
@@ -132,7 +140,7 @@ function renderList() {
   const ul = $("items"); ul.textContent = "";
   const q = $("q").value.trim().toLowerCase();
   $("count").textContent = items.length + (items.length === 1 ? " thing kept" : " things kept");
-  const shown = [...items].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const shown = [...items].sort((a, b) => (!!a.done_at - !!b.done_at) || b.created_at.localeCompare(a.created_at))
     .filter((i) => filt === "all" || i.cat === filt)
     .filter((i) => !q || (i.text + " " + (i.note || "")).toLowerCase().includes(q));
   if (!shown.length) {
@@ -143,10 +151,11 @@ function renderList() {
   }
   for (const i of shown) {
     const open = openId === i.id;
-    const li = el("li", { class: "entry" + (open ? " open" : "") });
+    const li = el("li", { class: "entry" + (open ? " open" : "") + (i.done_at ? " done" : "") });
     const head = el("button", { type: "button", class: "entry-head", "aria-expanded": String(open), "aria-controls": "d-" + i.id });
     if (filt === "all") head.appendChild(el("span", { class: "tag" }, catOf(i.cat).label));
     head.appendChild(el("span", { class: "entry-title" }, i.text));
+    if (i.done_at) head.appendChild(el("span", { class: "done-pill" }, "Done"));
     head.appendChild(el("span", { class: "chev", "aria-hidden": "true" }, open ? "–" : "+"));
     head.onclick = () => { openId = open ? null : i.id; confirmId = null; renderList(); };
     li.appendChild(head);
@@ -158,14 +167,21 @@ function renderList() {
       else { memo.classList.add("blank"); memo.textContent = "No memory line for this one."; }
       d.appendChild(memo);
       const foot = el("div", { class: "entry-foot" });
-      foot.appendChild(el("time", { datetime: i.created_at }, "Kept " + new Date(i.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })));
+      const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+      foot.appendChild(el("time", { datetime: i.created_at }, "Kept " + fmt(i.created_at) + (i.done_at ? " · Done " + fmt(i.done_at) : "")));
+      const actions = el("div", { class: "row" });
+      const tick = el("button", { type: "button", class: "tick" + (i.done_at ? " on" : ""), "aria-pressed": String(!!i.done_at) });
+      tick.appendChild(el("span", { class: "box", "aria-hidden": "true" }));
+      tick.appendChild(el("span", null, i.done_at ? "Done. Tap to bring it back" : "Mark as done"));
+      tick.onclick = () => toggleDone(i.id, !i.done_at);
+      actions.appendChild(tick);
       const del = el("button", { type: "button", class: "del" + (confirmId === i.id ? " confirm" : "") }, confirmId === i.id ? "Tap again to delete" : "Remove");
       del.onclick = () => {
         if (confirmId === i.id) return removeItem(i.id);
         confirmId = i.id; renderList();
         setTimeout(() => { if (confirmId === i.id) { confirmId = null; renderList(); } }, 4000);
       };
-      foot.appendChild(del); d.appendChild(foot); li.appendChild(d);
+      actions.appendChild(del); foot.appendChild(actions); d.appendChild(foot); li.appendChild(d);
     }
     ul.appendChild(li);
   }
@@ -196,7 +212,7 @@ function renderAll() { renderChips(); renderRecall(); renderList(); }
 // ---------- data ----------
 async function load() {
   const [it, ca, se] = await Promise.all([
-    sb.from("items").select("id, cat, text, note, created_at").order("created_at"),
+    sb.from("items").select("id, cat, text, note, created_at, done_at").order("created_at"),
     sb.from("categories").select("id, label, recall, created_at").order("created_at"),
     sb.from("settings").select("reminders_on, remind_hour, remind_tz").maybeSingle(),
   ]);
@@ -212,7 +228,7 @@ $("logForm").addEventListener("submit", async (e) => {
   const text = $("text").value.trim(); if (!text) return;
   const note = $("note").value.trim() || null;
   $("keepBtn").disabled = true;
-  const { data, error } = await sb.from("items").insert({ cat: selCat, text, note }).select("id, cat, text, note, created_at").single();
+  const { data, error } = await sb.from("items").insert({ cat: selCat, text, note }).select("id, cat, text, note, created_at, done_at").single();
   $("keepBtn").disabled = false;
   if (error) return flash("toast", "That did not save. Check your connection and try again.");
   items.push(data); $("text").value = ""; $("note").value = ""; $("text").focus();
@@ -223,6 +239,14 @@ async function removeItem(id) {
   const { error } = await sb.from("items").delete().eq("id", id);
   if (error) return flash("toast", "Could not remove that. Try again.");
   items = items.filter((i) => i.id !== id); renderAll();
+}
+async function toggleDone(id, done) {
+  const done_at = done ? new Date().toISOString() : null;
+  const { error } = await sb.from("items").update({ done_at }).eq("id", id);
+  if (error) return flash("toast", "Could not update that. Try again.");
+  const it = items.find((i) => i.id === id); if (it) it.done_at = done_at;
+  renderAll();
+  flash("toast", done ? "Marked as done. It won't come back in your reminders." : "Brought back. It can turn up in your reminders again.");
 }
 $("q").addEventListener("input", renderList);
 $("orb").addEventListener("click", () => { smoke.pulse = 1; markSeen(); });
